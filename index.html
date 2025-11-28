@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>💰 Mis Metas Financieras</title>
+  <!-- Firebase SDKs (modo compatibilidad) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <!-- Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    body {
+      background: linear-gradient(135deg, #f9f7fe, #e2f0ff);
+      color: #2c3e50;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+    }
+    h1 {
+      text-align: center;
+      margin: 20px 0 10px;
+      color: #4a6cf7;
+      font-weight: 700;
+      font-size: 28px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #6c757d;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(74, 108, 247, 0.1);
+      margin-bottom: 20px;
+    }
+    button, input, select {
+      padding: 12px 16px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      width: 100%;
+      outline: none;
+    }
+    input, select {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #1e293b;
+    }
+    button {
+      background: #4a6cf7;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    button:hover {
+      background: #3a56d9;
+      transform: translateY(-2px);
+    }
+    .btn-green { background: #10b981; }
+    .btn-green:hover { background: #0da271; }
+    .btn-red { background: #ef4444; }
+    .btn-red:hover { background: #dc2626; }
+
+    .saldo {
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      color: #10b981;
+      margin: 15px 0;
+      background: rgba(16, 185, 129, 0.08);
+      padding: 12px;
+      border-radius: 12px;
+    }
+
+    .meta-item {
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border-left: 4px solid #4a6cf7;
+    }
+    .meta-titulo {
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #1e293b;
+    }
+    .meta-progreso {
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .meta-bar {
+      height: 100%;
+      background: #4a6cf7;
+      border-radius: 5px;
+      transition: width 0.6s ease;
+    }
+    .meta-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .historial-item {
+      padding: 12px 0;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+    }
+    .historial-item:last-child {
+      border-bottom: none;
+    }
+    .hist-desc {
+      font-weight: 500;
+    }
+    .gasto { color: #ef4444; }
+    .ingreso { color: #10b981; }
+    .categoria {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Mis Metas Financieras</h1>
+    <p class="subtitle">Registra gastos, sigue ingresos y alcanza tus sueños</p>
+
+    <div class="card">
+      <div class="saldo" id="saldo">Saldo: $0.00</div>
+    </div>
+
+    <!-- Nueva Meta -->
+    <div class="card">
+      <h3>✨ Nueva Meta</h3>
+      <input type="text" id="metaNombre" placeholder="Nombre (ej: Bicicleta nueva)" />
+      <input type="number" id="metaMonto" placeholder="Monto objetivo ($)" min="1" step="0.01" />
+      <button class="btn-green" onclick="crearMeta()">Crear Meta</button>
+    </div>
+
+    <!-- Nuevo Movimiento -->
+    <div class="card">
+      <h3>💸 Nuevo Movimiento</h3>
+      <select id="movTipo">
+        <option value="ingreso">Ingreso</option>
+        <option value="gasto">Gasto</option>
+      </select>
+      <input type="text" id="movDescripcion" placeholder="Descripción" />
+      <input type="number" id="movMonto" placeholder="Monto ($)" min="0.01" step="0.01" />
+      <input type="text" id="movCategoria" placeholder="Categoría (ej: Comida, Ropa, Salud)" />
+      <button onclick="crearMovimiento()">Agregar</button>
+    </div>
+
+    <!-- Lista de Metas -->
+    <div class="card">
+      <h3>🌟 Mis Metas</h3>
+      <div id="listaMetas">Cargando metas...</div>
+    </div>
+
+    <!-- Historial -->
+    <div class="card">
+      <h3>📜 Historial</h3>
+      <div id="historial">Cargando historial...</div>
+    </div>
+  </div>
+
+  <script>
+    // 🔑 CONFIGURACIÓN DE FIREBASE – ¡USA LA TUYA!
+    const firebaseConfig = {
+      apiKey: "AIzaSyC-hWkkYJYCcxY0a9rj4qm94Yv-OPI5C5Q",
+      authDomain: "wallet-b8ea8.firebaseapp.com",
+      databaseURL: "https://wallet-b8ea8-default-rtdb.firebaseio.com", // ✅ sin espacios
+      projectId: "wallet-b8ea8",
+      storageBucket: "wallet-b8ea8.firebasestorage.app",
+      messagingSenderId: "126330844302",
+      appId: "1:126330844302:web:08005381aa8308236405df"
+    };
+
+    // ✅ Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+    const metasRef = db.ref('metas');
+    const movsRef = db.ref('movimientos');
+
+    let saldo = 0;
+    let metas = [];
+    let movimientos = [];
+
+    // === Cargar datos en tiempo real ===
+    function cargarDatos() {
+      movsRef.on('value', snapshot => {
+        movimientos = snapshot.val() ? Object.values(snapshot.val()) : [];
+        calcularSaldo();
+        renderHistorial();
+      });
+
+      metasRef.on('value', snapshot => {
+        metas = snapshot.val() ? Object.values(snapshot.val()) : [];
+        renderMetas();
+      });
+    }
+
+    function calcularSaldo() {
+      let ingresos = 0, gastos = 0;
+      movimientos.forEach(m => {
+        const monto = parseFloat(m.monto) || 0;
+        if (m.tipo === 'ingreso') ingresos += monto;
+        else gastos += monto;
+      });
+      saldo = ingresos - gastos;
+      document.getElementById('saldo').textContent = `Saldo: $${saldo.toFixed(2)}`;
+    }
+
+    // === Crear Meta ===
+    function crearMeta() {
+      const nombre = document.getElementById('metaNombre').value.trim();
+      const montoObj = parseFloat(document.getElementById('metaMonto').value);
+      if (!nombre || isNaN(montoObj) || montoObj <= 0) {
+        alert('Completa el nombre y un monto válido.');
+        return;
+      }
+      metasRef.push({
+        nombre: nombre,
+        objetivo: montoObj,
+        fechaCreacion: Date.now()
+      });
+      document.getElementById('metaNombre').value = '';
+      document.getElementById('metaMonto').value = '';
+    }
+
+    // === Crear Movimiento ===
+    function crearMovimiento() {
+      const tipo = document.getElementById('movTipo').value;
+      const desc = document.getElementById('movDescripcion').value.trim();
+      const monto = parseFloat(document.getElementById('movMonto').value);
+      const cat = document.getElementById('movCategoria').value.trim() || (tipo === 'gasto' ? 'Otro' : 'Otros');
+
+      if (!desc || isNaN(monto) || monto <= 0) {
+        alert('Por favor, completa todos los campos con valores válidos.');
+        return;
+      }
+
+      movsRef.push({
+        tipo: tipo,
+        descripcion: desc,
+        monto: monto,
+        categoria: cat,
+        fecha: Date.now()
+      });
+
+      document.getElementById('movDescripcion').value = '';
+      document.getElementById('movMonto').value = '';
+      document.getElementById('movCategoria').value = '';
+    }
+
+    // === Renderizar Metas ===
+    function renderMetas() {
+      const div = document.getElementById('listaMetas');
+      if (metas.length === 0) {
+        div.innerHTML = '<p>¡Crea tu primera meta!</p>';
+        return;
+      }
+
+      div.innerHTML = metas.map(meta => {
+        const objetivo = parseFloat(meta.objetivo);
+        let progreso = 0;
+        if (objetivo > 0) {
+          progreso = Math.min(100, (saldo / objetivo) * 100);
+        }
+        const completada = progreso >= 100;
+
+        // 🎉 Activar confeti si se completa ahora
+        if (completada && !meta.completada) {
+          confetti({
+            particleCount: 150,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+          // Opcional: marcar como completada en Firebase (no necesario, es solo visual)
+        }
+
+        return `
+          <div class="meta-item">
+            <div class="meta-titulo">${meta.nombre}</div>
+            <div class="meta-progreso">
+              <div class="meta-bar" style="width: ${progreso}%"></div>
+            </div>
+            <div class="meta-info">
+              <span>Ahorro: $${saldo.toFixed(2)}</span>
+              <span>Objetivo: $${objetivo.toFixed(2)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // === Renderizar Historial ===
+    function renderHistorial() {
+      const div = document.getElementById('historial');
+      if (movimientos.length === 0) {
+        div.innerHTML = '<p>No hay movimientos aún.</p>';
+        return;
+      }
+
+      const sorted = [...movimientos].sort((a, b) => b.fecha - a.fecha);
+      div.innerHTML = sorted.map(m => `
+        <div class="historial-item">
+          <div>
+            <div class="hist-desc ${m.tipo === 'gasto' ? 'gasto' : 'ingreso'}">
+              ${m.descripcion}
+            </div>
+            <div class="categoria">${m.categoria}</div>
+          </div>
+          <div class="${m.tipo === 'gasto' ? 'gasto' : 'ingreso'}">
+            ${m.tipo === 'gasto' ? '-$' : '+$'}${parseFloat(m.monto).toFixed(2)}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // === Iniciar app ===
+    cargarDatos();
+  </script>
+</body>
+</html>
