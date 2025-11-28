@@ -4,11 +4,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>💰 Mis Finanzas</title>
+  <!-- Firebase SDKs (modo compatibilidad para HTML puro) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+  <!-- Confeti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
     body {
       background: linear-gradient(135deg, #f9f7fe, #e2f0ff);
       color: #2c3e50;
@@ -78,18 +85,22 @@
       border-left: 4px solid #4a6cf7;
       position: relative;
     }
-    .meta-titulo { font-weight: bold; margin-bottom: 6px; color: #1e293b; }
+    .meta-titulo {
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #1e293b;
+    }
     .meta-progreso {
-      height: 10px;
+      height: 12px;
       background: #e2e8f0;
-      border-radius: 5px;
+      border-radius: 6px;
       overflow: hidden;
       margin: 8px 0;
     }
     .meta-bar {
       height: 100%;
       background: #4a6cf7;
-      border-radius: 5px;
+      border-radius: 6px;
       transition: width 0.6s ease;
     }
     .meta-info {
@@ -98,10 +109,9 @@
       font-size: 14px;
       color: #64748b;
     }
-    .btn-eliminar {
+    .btn-abonar, .btn-eliminar {
       position: absolute;
       top: 10px;
-      right: 10px;
       width: 32px;
       height: 32px;
       padding: 0;
@@ -109,15 +119,13 @@
       border-radius: 50%;
     }
     .btn-abonar {
-      position: absolute;
-      top: 10px;
       right: 50px;
-      width: 32px;
-      height: 32px;
-      padding: 0;
-      font-size: 14px;
-      border-radius: 50%;
       background: #10b981;
+      color: white;
+    }
+    .btn-eliminar {
+      right: 10px;
+      background: #ef4444;
       color: white;
     }
 
@@ -127,11 +135,23 @@
       display: flex;
       justify-content: space-between;
     }
-    .historial-item:last-child { border-bottom: none; }
-    .hist-desc { font-weight: 500; }
-    .gasto { color: #ef4444; }
-    .ingreso { color: #10b981; }
-    .categoria { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+    .historial-item:last-child {
+      border-bottom: none;
+    }
+    .hist-desc {
+      font-weight: 500;
+    }
+    .gasto {
+      color: #ef4444;
+    }
+    .ingreso {
+      color: #10b981;
+    }
+    .categoria {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
 
     #loginScreen {
       display: flex;
@@ -170,7 +190,7 @@
 
     <div class="card">
       <h3>✨ Nueva Meta</h3>
-      <input type="text" id="metaNombre" placeholder="Nombre (ej: Viaje a la playa)" />
+      <input type="text" id="metaNombre" placeholder="Nombre (ej: Bicicleta nueva)" />
       <input type="number" id="metaMonto" placeholder="Monto objetivo (₡)" min="1" step="0.01" />
       <button class="btn-green" onclick="crearMeta()">Crear Meta</button>
     </div>
@@ -199,11 +219,13 @@
   </div>
 
   <script>
+    // 🔑 Usuarios y contraseñas
     const USUARIOS = {
       "Zury": "zury123",
       "Emma": "emma456"
     };
 
+    // 🔑 Configuración de Firebase – ¡USANDO TU PROYECTO!
     const firebaseConfig = {
       apiKey: "AIzaSyC-hWkkYJYCcxY0a9rj4qm94Yv-OPI5C5Q",
       authDomain: "wallet-b8ea8.firebaseapp.com",
@@ -214,6 +236,7 @@
       appId: "1:126330844302:web:08005381aa8308236405df"
     };
 
+    // ✅ Inicializar Firebase en modo compatibilidad
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let currentUser = null;
@@ -282,7 +305,7 @@
       getMetasRef().push({
         nombre: nombre,
         objetivo: monto,
-        abono: 0, // ← Inicializado en 0
+        abono: 0,
         fechaCreacion: Date.now()
       });
       document.getElementById('metaNombre').value = '';
@@ -355,7 +378,7 @@
         return `
           <div class="meta-item">
             <button class="btn-abonar" onclick="abonarAMeta('${meta.key}')">➕</button>
-            <button class="btn-red btn-eliminar" onclick="eliminarMeta('${meta.key}')">🗑️</button>
+            <button class="btn-eliminar" onclick="eliminarMeta('${meta.key}')">🗑️</button>
             <div class="meta-titulo">${meta.nombre}</div>
             <div class="meta-progreso">
               <div class="meta-bar" style="width: ${progreso}%"></div>
@@ -363,6 +386,9 @@
             <div class="meta-info">
               <span>Abonado: ₡${abono.toFixed(2)}</span>
               <span>Objetivo: ₡${objetivo.toFixed(2)}</span>
+            </div>
+            <div style="font-size:12px;color:#4a6cf7;margin-top:6px;">
+              Progreso: ${progreso.toFixed(1)}%
             </div>
           </div>
         `;
