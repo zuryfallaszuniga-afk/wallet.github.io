@@ -4,13 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>💰 Mis Finanzas</title>
-  <!-- Firebase SDKs (modo compatibilidad) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-  <!-- Confeti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     body {
       background: linear-gradient(135deg, #f9f7fe, #e2f0ff);
       color: #2c3e50;
@@ -60,6 +58,7 @@
       transform: translateY(-2px);
     }
     .btn-green { background: #10b981; }
+    .btn-red { background: #ef4444; }
     .saldo {
       font-size: 28px;
       font-weight: bold;
@@ -77,6 +76,7 @@
       border-radius: 12px;
       margin-bottom: 16px;
       border-left: 4px solid #4a6cf7;
+      position: relative;
     }
     .meta-titulo { font-weight: bold; margin-bottom: 6px; color: #1e293b; }
     .meta-progreso {
@@ -97,6 +97,16 @@
       justify-content: space-between;
       font-size: 14px;
       color: #64748b;
+    }
+    .btn-eliminar {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      font-size: 14px;
+      border-radius: 50%;
     }
 
     .historial-item {
@@ -143,13 +153,13 @@
   <div id="appScreen" class="container">
     <h1>💰 Mis Finanzas</h1>
     <div class="card">
-      <div class="saldo" id="saldo">Saldo: $0.00</div>
+      <div class="saldo" id="saldo">Saldo: ₡0.00</div>
     </div>
 
     <div class="card">
       <h3>✨ Nueva Meta</h3>
-      <input type="text" id="metaNombre" placeholder="Nombre (ej: Vacaciones)" />
-      <input type="number" id="metaMonto" placeholder="Monto objetivo ($)" min="1" step="0.01" />
+      <input type="text" id="metaNombre" placeholder="Nombre (ej: Viaje a la playa)" />
+      <input type="number" id="metaMonto" placeholder="Monto objetivo (₡)" min="1" step="0.01" />
       <button class="btn-green" onclick="crearMeta()">Crear Meta</button>
     </div>
 
@@ -160,7 +170,7 @@
         <option value="gasto">Gasto</option>
       </select>
       <input type="text" id="movDescripcion" placeholder="Descripción" />
-      <input type="number" id="movMonto" placeholder="Monto ($)" min="0.01" step="0.01" />
+      <input type="number" id="movMonto" placeholder="Monto (₡)" min="0.01" step="0.01" />
       <input type="text" id="movCategoria" placeholder="Categoría (ej: Comida, Ropa)" />
       <button onclick="crearMovimiento()">Agregar</button>
     </div>
@@ -177,31 +187,22 @@
   </div>
 
   <script>
-    // 🔑 Usuarios y contraseñas
     const USUARIOS = {
       "Zury": "zury123",
       "Emma": "emma456"
     };
 
-    // 🔑 Configuración de Firebase – ¡CORREGIDA (sin espacios)!
     const firebaseConfig = {
       apiKey: "AIzaSyC-hWkkYJYCcxY0a9rj4qm94Yv-OPI5C5Q",
       authDomain: "wallet-b8ea8.firebaseapp.com",
-      databaseURL: "https://wallet-b8ea8-default-rtdb.firebaseio.com", // ✅ SIN ESPACIOS
+      databaseURL: "https://wallet-b8ea8-default-rtdb.firebaseio.com",
       projectId: "wallet-b8ea8",
       storageBucket: "wallet-b8ea8.firebasestorage.app",
       messagingSenderId: "126330844302",
       appId: "1:126330844302:web:08005381aa8308236405df"
     };
 
-    // ✅ Inicializar Firebase
-    try {
-      firebase.initializeApp(firebaseConfig);
-      console.log("✅ Firebase inicializado correctamente");
-    } catch (e) {
-      console.error("❌ Error al inicializar Firebase:", e);
-    }
-
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let currentUser = null;
 
@@ -214,11 +215,9 @@
         currentUser = user;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appScreen').style.display = 'block';
-        console.log("✅ Login exitoso para:", user);
         cargarDatos();
       } else {
         errorEl.textContent = "❌ Contraseña incorrecta";
-        console.log("🚫 Login fallido para:", user);
       }
     }
 
@@ -230,7 +229,7 @@
     }
 
     let saldo = 0;
-    let metas = [];
+    let metas = []; // Ahora será [{ key, data }, ...]
     let movimientos = [];
 
     function cargarDatos() {
@@ -241,7 +240,11 @@
       });
 
       getMetasRef().on('value', snapshot => {
-        metas = snapshot.val() ? Object.values(snapshot.val()) : [];
+        if (snapshot.val()) {
+          metas = Object.entries(snapshot.val()).map(([key, data]) => ({ key, ...data }));
+        } else {
+          metas = [];
+        }
         renderMetas();
       });
     }
@@ -254,7 +257,7 @@
         else gastos += monto;
       });
       saldo = ingresos - gastos;
-      document.getElementById('saldo').textContent = `Saldo: $${saldo.toFixed(2)}`;
+      document.getElementById('saldo').textContent = `Saldo: ₡${saldo.toFixed(2)}`;
     }
 
     function crearMeta() {
@@ -271,6 +274,12 @@
       });
       document.getElementById('metaNombre').value = '';
       document.getElementById('metaMonto').value = '';
+    }
+
+    function eliminarMeta(key) {
+      if (confirm("¿Eliminar esta meta?")) {
+        getMetasRef().child(key).remove();
+      }
     }
 
     function crearMovimiento() {
@@ -315,13 +324,14 @@
 
         return `
           <div class="meta-item">
+            <button class="btn-red btn-eliminar" onclick="eliminarMeta('${meta.key}')">🗑️</button>
             <div class="meta-titulo">${meta.nombre}</div>
             <div class="meta-progreso">
               <div class="meta-bar" style="width: ${progreso}%"></div>
             </div>
             <div class="meta-info">
-              <span>Ahorro: $${saldo.toFixed(2)}</span>
-              <span>Objetivo: $${objetivo.toFixed(2)}</span>
+              <span>Ahorro: ₡${saldo.toFixed(2)}</span>
+              <span>Objetivo: ₡${objetivo.toFixed(2)}</span>
             </div>
           </div>
         `;
@@ -345,7 +355,7 @@
             <div class="categoria">${m.categoria}</div>
           </div>
           <div class="${m.tipo === 'gasto' ? 'gasto' : 'ingreso'}">
-            ${m.tipo === 'gasto' ? '-$' : '+$'}${parseFloat(m.monto).toFixed(2)}
+            ${m.tipo === 'gasto' ? '-₡' : '+₡'}${parseFloat(m.monto).toFixed(2)}
           </div>
         </div>
       `).join('');
