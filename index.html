@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>💰 Mis Finanzas</title>
-  <!-- Firebase SDKs (modo compatibilidad para HTML puro) -->
+  <!-- Firebase SDKs en modo compatibilidad (funciona en HTML puro) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
   <!-- Confeti -->
@@ -141,12 +141,8 @@
     .hist-desc {
       font-weight: 500;
     }
-    .gasto {
-      color: #ef4444;
-    }
-    .ingreso {
-      color: #10b981;
-    }
+    .gasto { color: #ef4444; }
+    .ingreso { color: #10b981; }
     .categoria {
       font-size: 12px;
       color: #94a3b8;
@@ -240,6 +236,9 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let currentUser = null;
+    let saldo = 0;
+    let metas = [];
+    let movimientos = [];
 
     function login() {
       const user = document.getElementById('userSelect').value;
@@ -263,15 +262,11 @@
       return db.ref(`usuarios/${currentUser}/movimientos`);
     }
 
-    let saldo = 0;
-    let metas = [];
-    let movimientos = [];
-
     function cargarDatos() {
       getMovsRef().on('value', snapshot => {
         movimientos = snapshot.val() ? Object.values(snapshot.val()) : [];
-        calcularSaldo();
         renderHistorial();
+        calcularSaldo();
       });
 
       getMetasRef().on('value', snapshot => {
@@ -281,6 +276,7 @@
           metas = [];
         }
         renderMetas();
+        calcularSaldo();
       });
     }
 
@@ -291,7 +287,13 @@
         if (m.tipo === 'ingreso') ingresos += monto;
         else gastos += monto;
       });
-      saldo = ingresos - gastos;
+
+      let totalAbonado = 0;
+      metas.forEach(meta => {
+        totalAbonado += parseFloat(meta.abono) || 0;
+      });
+
+      saldo = ingresos - gastos - totalAbonado;
       document.getElementById('saldo').textContent = `Saldo: ₡${saldo.toFixed(2)}`;
     }
 
@@ -323,6 +325,21 @@
       const monto = parseFloat(montoStr);
       if (isNaN(monto) || monto <= 0) {
         alert("Ingresa un monto válido.");
+        return;
+      }
+
+      // Calcular saldo disponible: ingresos - gastos - totalAbonado
+      let ingresos = movimientos
+        .filter(m => m.tipo === 'ingreso')
+        .reduce((sum, m) => sum + parseFloat(m.monto || 0), 0);
+      let gastos = movimientos
+        .filter(m => m.tipo === 'gasto')
+        .reduce((sum, m) => sum + parseFloat(m.monto || 0), 0);
+      let totalAbonado = metas.reduce((sum, meta) => sum + (parseFloat(meta.abono) || 0), 0);
+      const saldoDisponible = ingresos - gastos - totalAbonado;
+
+      if (monto > saldoDisponible) {
+        alert(`No tienes suficiente saldo. Saldo disponible: ₡${saldoDisponible.toFixed(2)}`);
         return;
       }
 
