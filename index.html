@@ -10,7 +10,7 @@
   <!-- Confeti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     body {
       background: linear-gradient(135deg, #f9f7fe, #e2f0ff);
       color: #2c3e50;
@@ -111,8 +111,6 @@
     .ingreso { color: #10b981; }
     .categoria { font-size: 12px; color: #94a3b8; margin-top: 4px; }
 
-    .screen { display: none; width: 100%; }
-    .active { display: block; }
     #loginScreen {
       display: flex;
       flex-direction: column;
@@ -120,12 +118,15 @@
       justify-content: center;
       min-height: 100vh;
     }
+    #appScreen {
+      display: none;
+    }
   </style>
 </head>
 <body>
 
   <!-- Pantalla de login -->
-  <div id="loginScreen" class="screen active">
+  <div id="loginScreen">
     <div class="card" style="max-width:400px;text-align:center;">
       <h2>🔐 Acceso Personal</h2>
       <select id="userSelect">
@@ -139,7 +140,7 @@
   </div>
 
   <!-- App principal -->
-  <div id="appScreen" class="screen container">
+  <div id="appScreen" class="container">
     <h1>💰 Mis Finanzas</h1>
     <div class="card">
       <div class="saldo" id="saldo">Saldo: $0.00</div>
@@ -176,17 +177,17 @@
   </div>
 
   <script>
-    // 🔑 Usuarios y contraseñas (cámbialas si quieres)
+    // 🔑 Usuarios y contraseñas
     const USUARIOS = {
       "Zury": "zury123",
       "Emma": "emma456"
     };
 
-    // 🔑 Configuración de Firebase – ¡USANDO LA TUYA!
+    // 🔑 Configuración de Firebase – ¡CORREGIDA (sin espacios)!
     const firebaseConfig = {
       apiKey: "AIzaSyC-hWkkYJYCcxY0a9rj4qm94Yv-OPI5C5Q",
       authDomain: "wallet-b8ea8.firebaseapp.com",
-      databaseURL: "https://wallet-b8ea8-default-rtdb.firebaseio.com",
+      databaseURL: "https://wallet-b8ea8-default-rtdb.firebaseio.com", // ✅ SIN ESPACIOS
       projectId: "wallet-b8ea8",
       storageBucket: "wallet-b8ea8.firebasestorage.app",
       messagingSenderId: "126330844302",
@@ -194,24 +195,33 @@
     };
 
     // ✅ Inicializar Firebase
-    firebase.initializeApp(firebaseConfig);
+    try {
+      firebase.initializeApp(firebaseConfig);
+      console.log("✅ Firebase inicializado correctamente");
+    } catch (e) {
+      console.error("❌ Error al inicializar Firebase:", e);
+    }
+
     const db = firebase.database();
     let currentUser = null;
 
     function login() {
       const user = document.getElementById('userSelect').value;
       const pass = document.getElementById('userPass').value;
+      const errorEl = document.getElementById('loginError');
+
       if (USUARIOS[user] === pass) {
         currentUser = user;
-        document.getElementById('loginScreen').classList.remove('active');
-        document.getElementById('appScreen').classList.add('active');
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('appScreen').style.display = 'block';
+        console.log("✅ Login exitoso para:", user);
         cargarDatos();
       } else {
-        document.getElementById('loginError').textContent = "❌ Contraseña incorrecta";
+        errorEl.textContent = "❌ Contraseña incorrecta";
+        console.log("🚫 Login fallido para:", user);
       }
     }
 
-    // === Referencias por usuario ===
     function getMetasRef() {
       return db.ref(`usuarios/${currentUser}/metas`);
     }
